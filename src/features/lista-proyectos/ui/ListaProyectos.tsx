@@ -1,9 +1,16 @@
 import { proyectoApi } from "@entities/proyecto-tesis/api/proyectoApi";
 import type { ProyectoTesis } from "@entities/proyecto-tesis/model/types";
-import { ProyectoCard } from "@widgets/proyecto-card/ProyectoCard";
+// eslint-disable-next-line no-restricted-imports
+import { AnimatedProyectoCard } from "@widgets/proyecto-card/AnimatedProyectoCard";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text } from "react-native";
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StyleSheet,
+    Text,
+} from "react-native";
 
 interface Props {
   searchQuery?: string;
@@ -15,35 +22,48 @@ export function ListaProyectos({ searchQuery = "" }: Props) {
   const [error, setError] = useState<string | null>(null);
   const primeraEntrada = useRef(true);
 
-  const cargarProyectos = useCallback(async (silent = false) => {
-    if (!silent) setCargando(true);
-    setError(null);
+  const cargarProyectos = useCallback(
+    async (silent = false) => {
+      if (!silent) setCargando(true);
+      setError(null);
 
-    try {
-      const query = searchQuery.trim();
-      const data = query ? await proyectoApi.search(query) : await proyectoApi.getAll();
-      const filtrados = query
-        ? data.filter((p) => p.titulo.toLowerCase().includes(query.toLowerCase()))
-        : data;
-      setProyectos(filtrados);
-    } catch (e) {
-      const mensaje = e instanceof Error ? e.message : "Error desconocido";
-      setError(mensaje);
-    } finally {
-      if (!silent) setCargando(false);
-    }
-  }, [searchQuery]);
+      try {
+        const query = searchQuery.trim();
+        const data = query
+          ? await proyectoApi.search(query)
+          : await proyectoApi.getAll();
+        const filtrados = query
+          ? data.filter((p) =>
+              p.titulo.toLowerCase().includes(query.toLowerCase()),
+            )
+          : data;
+        setProyectos(filtrados);
+      } catch (e) {
+        const mensaje = e instanceof Error ? e.message : "Error desconocido";
+        setError(mensaje);
+      } finally {
+        if (!silent) setCargando(false);
+      }
+    },
+    [searchQuery],
+  );
 
-  const eliminarProyecto = useCallback(async (id: string, titulo: string) => {
-    try {
-      await proyectoApi.delete(id);
-      await cargarProyectos(true);
-      Alert.alert("Proyecto eliminado", `Se eliminó \"${titulo}\" correctamente.`);
-    } catch (e) {
-      const mensaje = e instanceof Error ? e.message : "Error desconocido";
-      Alert.alert("Error", `No se pudo eliminar el proyecto: ${mensaje}`);
-    }
-  }, [cargarProyectos]);
+  const eliminarProyecto = useCallback(
+    async (id: string, titulo: string) => {
+      try {
+        await proyectoApi.delete(id);
+        await cargarProyectos(true);
+        Alert.alert(
+          "Proyecto eliminado",
+          `Se eliminó \"${titulo}\" correctamente.`,
+        );
+      } catch (e) {
+        const mensaje = e instanceof Error ? e.message : "Error desconocido";
+        Alert.alert("Error", `No se pudo eliminar el proyecto: ${mensaje}`);
+      }
+    },
+    [cargarProyectos],
+  );
 
   useEffect(() => {
     cargarProyectos();
@@ -81,11 +101,12 @@ export function ListaProyectos({ searchQuery = "" }: Props) {
     <FlatList
       data={proyectos}
       keyExtractor={(p) => p.id}
-      renderItem={({ item }) => (
-        <ProyectoCard
+      renderItem={({ item, index }) => (
+        <AnimatedProyectoCard
           proyecto={item}
           onPress={() => router.push(`/proyecto/${item.id}`)}
           onDelete={() => eliminarProyecto(item.id, item.titulo)}
+          delay={index * 100}
         />
       )}
       contentContainerStyle={styles.lista}
